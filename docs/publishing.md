@@ -1,40 +1,43 @@
-# Publishing the project to GitHub
+# Maintaining the published repository
 
-This distribution is ready to publish as a **new repository named `12-prompts`**. There are no credentials or secrets embedded in it.
+The canonical repository is **[benclawbot/12-prompts](https://github.com/benclawbot/12-prompts)**. Its default branch is `main`.
 
-## Option A: GitHub website + GitHub CLI
-
-1. Create an empty **private** repository called `12-prompts` under your account at https://github.com/new. Don't add a generated README, license, or `.gitignore`; this project includes those already.
-2. Download and unzip `12-prompts-complete.zip`, then open a terminal in the extracted `12-prompts` folder.
-3. Run:
+## Clone and validate
 
 ```bash
-git init -b main
-git add .
-git commit -m "Add portable 12-prompts skill and evaluation suite"
-git remote add origin https://github.com/YOUR-ACCOUNT/12-prompts.git
-git push -u origin main
+git clone https://github.com/benclawbot/12-prompts.git
+cd 12-prompts
+python3 scripts/lint.py
+python3 scripts/build.py --check
+python3 -m unittest discover -s tests -v
 ```
 
-Replace `YOUR-ACCOUNT` with your account name. Authenticate normally with GitHub when prompted; do not paste credentials into a conversation.
+## Edit and publish
 
-## Option B: `gh` CLI, if installed and authenticated
-
-After extracting the archive, open the project folder and run:
+1. Make changes in `skills/12-prompts/` (the canonical source).
+2. Regenerate the ChatGPT project knowledge bundle: `python3 scripts/build.py`.
+3. Run lint, unit tests, and `python3 scripts/package.py`.
+4. Review changes using `git diff`. Commit and push using your normal authenticated GitHub workflow.
 
 ```bash
-git init -b main
 git add .
-git commit -m "Add portable 12-prompts skill and evaluation suite"
-gh repo create 12-prompts --private --source=. --remote=origin --push
+git commit -m "Improve reasoning framework"
+git push origin main
 ```
 
-If you want it public instead, change `--private` to `--public`. Review source credit and any desired repository settings before making it public.
+## Build the downloadable archives
 
-## After publishing
+```bash
+python3 scripts/package.py
+```
 
-- GitHub Actions runs the Python structural checks on each push and pull request.
-- To update framework prompts, edit `skills/12-prompts/references/frameworks/`, rebuild the ChatGPT knowledge file using `python scripts/build.py`, and run `python scripts/lint.py` plus `python -m unittest discover -s tests -v`.
-- To refresh the skill ZIP, run `python scripts/package.py`.
+This creates `dist/12-prompts-skill.zip` for Claude's skill uploader and `dist/12-prompts-complete.zip` as a source archive. These archives are generated build artifacts, not required for GitHub source checkout; attach them to a release if desired.
 
-**Note:** GitHub API integrations differ. Some connected GitHub apps can write repository files but cannot create a new repository; if so, create the empty repo in GitHub first and grant it access to the app if needed.
+## Platform deployment
+
+- **ChatGPT:** update Project instructions from `chatgpt/project-instructions.md` and replace the uploaded knowledge file from `chatgpt/12-prompts-knowledge.txt`.
+- **Claude Code:** run `python3 scripts/install.py --target claude --scope global --force`, or install inside a project.
+- **OpenCode:** run `python3 scripts/install.py --target opencode --scope global --force`, or install inside a project.
+- **Claude web:** upload the newly built `dist/12-prompts-skill.zip` in Customize → Skills.
+
+GitHub Actions runs structural tests on pushes and pull requests. These do not measure actual response quality; use the manual model-evaluation protocol in `evals/rubric.md` for that.
